@@ -1,0 +1,153 @@
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local onenabledshotho = false
+local currentLoop = nil
+local originalPosition = nil
+
+-- --- CREACIÓN DE LA UI FLOTANTE ---
+local function CreateInstakillGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "InstakillFloatGUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local Frame = Instance.new("Frame")
+    Frame.Name = "MainFrame"
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Frame.BorderSizePixel = 0
+    Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Frame.Size = UDim2.new(0, 200, 0, 80)
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Frame
+
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "ToggleButton"
+    ToggleButton.Parent = Frame
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+    ToggleButton.Size = UDim2.new(0.8, 0, 0.6, 0)
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Text = "Instakill: OFF"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 16
+    ToggleButton.TextWrapped = true
+
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 8)
+    ButtonCorner.Parent = ToggleButton
+
+    -- Lógica de arrastre (Drag)
+    local dragging, dragInput, dragStart, startPos
+    Frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    Frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+    return ToggleButton
+end
+
+local ToggleButton = CreateInstakillGUI()
+
+-- --- LÓGICA INSTAKILL ĐÃ SỬA LỖI CHẾT ---
+local function startInstakill()
+    if currentLoop then return end
+    
+    -- Lưu vị trí hiện tại
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        originalPosition = char.HumanoidRootPart.CFrame
+    end
+    
+    currentLoop = task.spawn(function()
+        while onenabledshotho do
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- ✅ CÁCH 1: Dùng khoảng cách NHỎ (50-100 stud) - AN TOÀN NHẤT
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, -50, 0)
+                
+                -- ✅ CÁCH 2: Nếu cách 1 không one-hit, thử cách này (bỏ comment)
+                -- hrp.Velocity = Vector3.new(0, -200, 0)
+                
+                -- ❌ KHÔNG dùng số quá lớn như cũ
+            end
+            task.wait(0.01)
+        end
+    end)
+end
+
+local function stopInstakill()
+    if currentLoop then
+        task.cancel(currentLoop)
+        currentLoop = nil
+    end
+    
+    -- Đưa về vị trí cũ (tránh bị kẹt dưới đất)
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp and originalPosition then
+        hrp.CFrame = originalPosition
+        originalPosition = nil
+    end
+end
+
+local function toggleState(state)
+    if onenabledshotho == state then return end
+    onenabledshotho = state
+    
+    if onenabledshotho then
+        ToggleButton.Text = "Instakill: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 255, 60)
+        startInstakill()
+        print("✅ Instakill BẬT - Nhân vật sẽ rơi nhẹ")
+    else
+        ToggleButton.Text = "Instakill: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        stopInstakill()
+        print("❌ Instakill TẮT - Đã về vị trí cũ")
+    end
+end
+
+-- Activación por click en el botón
+ToggleButton.MouseButton1Click:Connect(function()
+    toggleState(not onenabledshotho)
+end)
+
+-- Activación por tecla N 
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.N then
+        toggleState(not onenabledshotho)
+    end
+end)
+
+print("═══════════════════════════════════════════════")
+print("✅ SCRIPT ĐÃ CHẠY - ĐÃ SỬA LỖI CHẾT ĐỘT NGỘT")
+print("📌 Nhấn N hoặc click nút để bật/tắt")
+print("🟢 Khi bật: Rơi 50 stud/frame (AN TOÀN)")
+print("🔴 Khi tắt: Tự động về vị trí cũ")
+print("═══════════════════════════════════════════════")
