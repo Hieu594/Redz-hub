@@ -102,7 +102,7 @@ end)
 -- Activación por tecla N 
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.N then
+    if input.KeyCode == Enum.KeyCode.G then
         toggleState(not onenabledshotho)
     end
 end)
